@@ -1,0 +1,7 @@
+# Directories
+.idea
+__pycache__
+__pycache__/*
+
+# OS specific
+*.DS_Store
