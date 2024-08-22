@@ -1,6 +1,6 @@
 from pathlib import Path
-import asyncio
 import websockets
+import asyncio
 import sys
 
 
@@ -18,7 +18,7 @@ def parse_data(data: str) -> str:
     if data == "ls":
         return ls()
 
-    return '{"data": "Unknown command"}'
+    return '{"data": "Comando desconocido"}'
 
 
 async def echo(socket: websockets.WebSocketServerProtocol):
