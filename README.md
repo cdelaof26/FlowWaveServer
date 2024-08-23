@@ -33,13 +33,28 @@ $ python -m pip install -r requirements.txt
 
 # Ejecutar el servidor en puerto 6789
 $ python server.py
-
-# Ejecutar el servidor en puerto 8080
-$ python server.py 8080
 </pre>
 
 
+### Configuración
+Al ejecutar por primera vez el servidor, se creará un archivo llamado `config`,
+dentro de este es posible cambiar los parámetros mostrados en la tabla.
+
+| Propiedad                 | Descripción                                                                                                 | Valores                      |
+|---------------------------|-------------------------------------------------------------------------------------------------------------|------------------------------|
+| `host_ip`                 | IP del servidor                                                                                             | `localhost`, `IPv4` o `URL`  |
+| `port`                    | Puerto para la aplicación                                                                                   | Entero en rango `1024-49151` |
+| `allow_shell_full_access` | Bandera que indica si el usuario puede ejecutar cualquier comando disponible (sin permisos administrativos) | `True` o `False`             |
+
+
 ### Historial de cambios
+
+#### v0.0.2
+- Agregado archivo de configuración
+- Ya no es posible cambiar el puerto de la aplicación por medio de línea de comando
+- Se implementan validaciones sobre los comandos para evitar ejecución de código 
+  malicioso en el modo restringido
+- Mensaje `Comando desconocido` cambiado por `Invalid command`
 
 #### v0.0.1_1
 - Agregado archivo de dependencias

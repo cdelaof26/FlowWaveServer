@@ -3,5 +3,8 @@
 __pycache__
 __pycache__/*
 
+# Data
+config
+
 # OS specific
 *.DS_Store
