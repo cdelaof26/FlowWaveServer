@@ -1,12 +1,14 @@
+from typing import Union
 from utils import config_loader
 from pathlib import Path
 import subprocess
 import platform
+import logging
 import sys
 import re
 
 
-PLATFORM = f"    FlowWave Server v0.0.2 - %s\\nPython {sys.version} on {platform.platform()}"
+PLATFORM = f"    FlowWave Server v0.0.3 - %s\\nPython {sys.version} on {platform.platform()}"
 OS = platform.system()
 IS_WINDOWS = OS == "Windows"
 current_path = Path.home()
@@ -29,19 +31,40 @@ def cd(input_data: str) -> str:
         if new_path.is_dir():
             current_path = new_path
             return ""
-
         return f"cd: not a directory: {new_path.name}"
     return f"cd: no such file or directory: {input_data}"
 
 
+def get(input_data: str) -> Union[str, Path]:
+    global current_path
+    input_data = input_data.replace("get ", "")
+    new_path = current_path.joinpath(input_data).resolve()
+
+    if new_path.exists():
+        if new_path.is_file():
+
+            new_path.__sizeof__()
+            return new_path
+        return f"get: not a file: {new_path.name}"
+    return f"get: no such file or directory: {input_data}"
+
+
 def run_command(cmd: str) -> str:
+    process = None
     try:
-        return subprocess.check_output(cmd, stderr=subprocess.STDOUT, timeout=10, cwd=current_path, shell=True).decode()
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=current_path, shell=True)
+        output, err = process.communicate(timeout=10)
+        return output.decode()
     except subprocess.TimeoutExpired:
-        return "Subprocess has been killed. Timeout"
-    except subprocess.CalledProcessError as e:
-        output = e.output.decode()
-        return f"{output}\nSubprocess ended with code {e.returncode}"
+        try:
+            if process is not None and process.poll() is None:
+                process.terminate()
+        except PermissionError:
+            logging.error("Cannot terminate process for %a" % cmd)
+        return f"Subprocess has been terminated. Timeout."
+    except subprocess.CalledProcessError:
+        output, err = process.communicate()
+        return f"{output.decode()}\nSubprocess ended with code {process.returncode}"
     except PermissionError as e:
         return f"Subprocess: ({e.errno}) {e.strerror}"
     except UnicodeDecodeError as e:
@@ -50,10 +73,17 @@ def run_command(cmd: str) -> str:
 
 def can_execute_any_command() -> bool:
     allow_shell_full_access = config_loader.get_config_property("allow_shell_full_access")
-    if allow_shell_full_access is None or not allow_shell_full_access:
-        return False
+    return allow_shell_full_access is not None and allow_shell_full_access
 
-    return True
+
+def can_download_files() -> bool:
+    allow_download_files = config_loader.get_config_property("allow_download_files")
+    return allow_download_files is not None and allow_download_files
+
+
+def can_upload_files() -> bool:
+    allow_upload_files = config_loader.get_config_property("allow_upload_files")
+    return allow_upload_files is not None and allow_upload_files
 
 
 def can_run_ls_uname_command(input_data: str) -> bool:
@@ -78,7 +108,7 @@ def can_run_ls_uname_command(input_data: str) -> bool:
     return True
 
 
-def execute_command(input_data: str) -> str:
+def execute_command(input_data: str) -> Union[str, Path]:
     global PLATFORM
 
     response_data = "Invalid command"
@@ -86,6 +116,9 @@ def execute_command(input_data: str) -> str:
 
     if input_data == "server_platform":
         response_data = PLATFORM % ("unrestricted" if can_execute_anything else "restricted")
+
+    elif input_data == "upload_policy":
+        response_data = "Upload files is " + ("allowed" if can_upload_files() else "not allowed")
 
     elif not re.sub(r"cd .+", "", input_data):
         response_data = cd(input_data)
@@ -95,6 +128,11 @@ def execute_command(input_data: str) -> str:
 
     elif can_run_ls_uname_command(input_data):
         return run_command(input_data)
+
+    elif not re.sub(r"get .+", "", input_data):
+        if can_download_files():
+            return get(input_data)
+        response_data = "Server: operation not permitted (download)"
 
     elif can_execute_anything:
         return run_command(input_data)

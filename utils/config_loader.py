@@ -8,11 +8,14 @@ port: 6789
 password: 
 mode: websocket
 
-# Allowed commands: server_platform, uname, cd, ls, pwd
+# Always allowed commands: server_platform, uname, cd, ls, pwd
 # Use 'True' to specify that the user is capable of executing code without limitations
 allow_shell_full_access: False
 
+# Allow 'get' command
 allow_download_files: True
+
+# Allow 'put' command
 allow_upload_files: True
 """
 
