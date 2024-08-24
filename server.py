@@ -8,7 +8,7 @@ import re
 
 
 def parse_data(input_data: str) -> Union[str, any]:
-    if not re.sub(r"\d+up:.+", "", input_data):
+    if input_data and not re.sub(r"\d+up:.+", "", input_data):
         data = input_data.split("up:")
         return int(data[0]), data[1]
 
