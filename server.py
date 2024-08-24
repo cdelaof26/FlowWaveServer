@@ -13,7 +13,7 @@ def parse_data(input_data: str) -> Union[str, any]:
         return int(data[0]), data[1]
 
     response_data = command_worker.execute_command(input_data)
-    if "download" in response_data:
+    if isinstance(response_data, str) and "download" in response_data:
         logging.info("Rejected request to download: %a" % str(input_data))
 
     if not isinstance(response_data, str):
