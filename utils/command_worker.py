@@ -7,8 +7,8 @@ import logging
 import sys
 import re
 
-
-PLATFORM = f"    FlowWave Server v0.0.3 - %s\\nPython {sys.version} on {platform.platform()}"
+VERSION = "v0.0.3_1"
+PLATFORM = f"    FlowWave Server {VERSION} - %s\nPython {sys.version} on {platform.platform()}"
 OS = platform.system()
 IS_WINDOWS = OS == "Windows"
 current_path = Path.home()

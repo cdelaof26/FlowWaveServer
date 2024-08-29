@@ -19,8 +19,13 @@ def parse_data(input_data: str) -> Union[str, any]:
     if not isinstance(response_data, str):
         return response_data
 
-    response_data = re.sub("\n$", "", response_data)
-    response_data = response_data.replace("\n", "\\n")
+    response_data = response_data.replace("\\", "\\\\").replace('"', '\\"')
+
+    response_data = re.sub("\n$", "", re.sub("\r\n$", "", response_data))
+    response_data = response_data.replace("\r", "\\r").replace("\n", "\\n")
+    response_data = response_data.replace("\b", "\\b").replace("\f", "\\f")
+    response_data = response_data.replace("\t", "\\t")
+
     return '{"data": "' + response_data + '"}'
 
 
@@ -79,9 +84,9 @@ def run():
     try:
         config_loader.read_config()
     except ValueError as e:
-        logging.error("[ERROR] Invalid configuration file")
-        logging.error("        Delete the file 'config' to load the defaults")
-        logging.error("\n", e)
+        logging.error("Invalid configuration file")
+        logging.error("    Delete the file 'config' to load the defaults")
+        logging.error(f"\n{e}")
         exit(1)
 
     if command_worker.can_execute_any_command():
@@ -98,7 +103,7 @@ def run():
     start_server = websockets.serve(echo, host_ip, port)
 
     asyncio.get_event_loop().run_until_complete(start_server)
-    logging.info(f"Server started at ws://{host_ip}:{port}")
+    logging.info(f"Server {command_worker.VERSION} started at ws://{host_ip}:{port}")
     asyncio.get_event_loop().run_forever()
 
 

@@ -80,6 +80,11 @@ flujo constante de datos no serán utilizables (por ejemplo `less`, `nano`, `pyt
 
 ### Historial de cambios
 
+#### v0.0.3_1
+- Resuelve problema al descargar archivos
+- Resuelve problema en el cual el server se cae al ingresar una cadena vacía
+- Resuelve problemas de compatibilidad con ciertos caracteres en la respuesta
+
 #### v0.0.3
 - Agregado `http_server.py`: servidor básico para mostrar el cliente
 - Implementado subir y descargar archivos
