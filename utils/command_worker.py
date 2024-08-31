@@ -1,5 +1,6 @@
 from typing import Union
 from utils import config_loader
+from datetime import datetime
 from pathlib import Path
 import subprocess
 import platform
@@ -7,25 +8,60 @@ import logging
 import sys
 import re
 
-VERSION = "v0.0.3_1"
+VERSION = "v0.0.4"
 PLATFORM = f"    FlowWave Server {VERSION} - %s\nPython {sys.version} on {platform.platform()}"
 OS = platform.system()
 IS_WINDOWS = OS == "Windows"
+_serving_path = None
 current_path = Path.home()
+
+
+def set_serving_path(serving_path: Path):
+    global _serving_path, current_path
+    _serving_path = serving_path
+    current_path = _serving_path
+
+
+def uls(input_data: str) -> str:
+    global current_path
+    directory_data = ""
+    allow_hidden = "true" in input_data.lower()
+
+    try:
+        for e in sorted(current_path.iterdir()):
+            if not allow_hidden and e.name.startswith("."):
+                continue
+
+            _stat = e.stat()
+            # name = re.sub(f"{e.suffix}$", "", e.name)
+            name = e.name
+            modification_date = datetime.fromtimestamp(_stat.st_mtime).strftime("%d %b %Y, %H:%M")
+            directory_data += f"{name};{modification_date};{e.is_dir()}\n"
+    except (PermissionError, FileNotFoundError):
+        return "ls: "
+
+    return f"ls: {directory_data}"
 
 
 def pwd() -> str:
     global current_path
-    return str(current_path)
+    return f"pwd: {current_path}"
 
 
 def cd(input_data: str) -> str:
     global current_path
     input_data = input_data.replace("cd ", "")
-    if input_data == "~":
-        new_path = Path.home()
+    if "~" in input_data:
+        new_path = Path(input_data.replace("~", str(Path.home())))
     else:
         new_path = current_path.joinpath(input_data).resolve()
+
+    if not config_loader.can_fully_access_the_filesystem():
+        if not config_loader.can_access_subdirectory_filesystem():
+            return "cd: operation not permitted (subdirectory access)"
+
+        if str(_serving_path) not in str(new_path):
+            return "cd: operation not permitted (filesystem access)"
 
     if new_path.exists():
         if new_path.is_dir():
@@ -51,8 +87,14 @@ def get(input_data: str) -> Union[str, Path]:
 
 def run_command(cmd: str) -> str:
     process = None
+    can_execute_any_command = config_loader.can_execute_any_command()
+
+    if not can_execute_any_command:
+        cmd = cmd.split(" ")
+
     try:
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=current_path, shell=True)
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                   cwd=current_path, shell=can_execute_any_command)
         output, err = process.communicate(timeout=10)
         return output.decode()
     except subprocess.TimeoutExpired:
@@ -69,21 +111,8 @@ def run_command(cmd: str) -> str:
         return f"Subprocess: ({e.errno}) {e.strerror}"
     except UnicodeDecodeError as e:
         return f"Subprocess: {e.reason}"
-
-
-def can_execute_any_command() -> bool:
-    allow_shell_full_access = config_loader.get_config_property("allow_shell_full_access")
-    return allow_shell_full_access is not None and allow_shell_full_access
-
-
-def can_download_files() -> bool:
-    allow_download_files = config_loader.get_config_property("allow_download_files")
-    return allow_download_files is not None and allow_download_files
-
-
-def can_upload_files() -> bool:
-    allow_upload_files = config_loader.get_config_property("allow_upload_files")
-    return allow_upload_files is not None and allow_upload_files
+    except FileNotFoundError:
+        return "Invalid command"
 
 
 def can_run_ls_uname_command(input_data: str) -> bool:
@@ -108,20 +137,35 @@ def can_run_ls_uname_command(input_data: str) -> bool:
     return True
 
 
+def get_server_platform(can_execute_anything: bool):
+    allow_full_filesystem_access = config_loader.can_fully_access_the_filesystem()
+    if allow_full_filesystem_access and can_execute_anything:
+        return PLATFORM % "unrestricted"
+    elif not allow_full_filesystem_access and not can_execute_anything:
+        return PLATFORM % "fully restricted"
+
+    if not allow_full_filesystem_access:
+        return PLATFORM % "filesystem restricted"
+    return PLATFORM % "shell restricted"
+
+
 def execute_command(input_data: str) -> Union[str, Path]:
     global PLATFORM
 
     response_data = "Invalid command"
-    can_execute_anything = can_execute_any_command()
+    can_execute_anything = config_loader.can_execute_any_command()
 
     if input_data == "server_platform":
-        response_data = PLATFORM % ("unrestricted" if can_execute_anything else "restricted")
+        response_data = get_server_platform(can_execute_anything)
 
     elif input_data == "upload_policy":
-        response_data = "Upload files is " + ("allowed" if can_upload_files() else "not allowed")
+        response_data = "Upload files is " + ("allowed" if config_loader.can_upload_files() else "not allowed")
 
     elif not re.sub(r"cd .+", "", input_data):
         response_data = cd(input_data)
+
+    elif not re.sub(r"uls .+", "", input_data):
+        response_data = uls(input_data)
 
     elif input_data == "pwd":
         response_data = pwd()
@@ -130,7 +174,7 @@ def execute_command(input_data: str) -> Union[str, Path]:
         return run_command(input_data)
 
     elif not re.sub(r"get .+", "", input_data):
-        if can_download_files():
+        if config_loader.can_download_files():
             return get(input_data)
         response_data = "Server: operation not permitted (download)"
 

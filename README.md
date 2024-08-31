@@ -64,21 +64,33 @@ $ python http_server.py
 Al ejecutar por primera vez el servidor, se creará un archivo llamado `config`,
 dentro de este es posible cambiar los parámetros mostrados en la tabla.
 
-| Propiedad                 | Descripción                                                                                     | Valores                      |
-|---------------------------|-------------------------------------------------------------------------------------------------|------------------------------|
-| `host_ip`                 | IP del servidor                                                                                 | `localhost`, `IPv4` o `URL`  |
-| `port`                    | Puerto para la aplicación                                                                       | Entero en rango `1024-49151` |
-| `allow_shell_full_access` | Indica si el usuario puede ejecutar cualquier comando disponible (sin permisos administrativos) | `True` o `False`             |
-| `allow_download_files`    | Indica si el usuario puede descargar archivos del servidor                                      | `True` o `False`             |
-| `allow_upload_files`      | Indica si el usuario puede subir archivos al servidor                                           | `True` o `False`             |
+| Propiedad                        | Descripción                                                                                     | Valores                      |
+|----------------------------------|-------------------------------------------------------------------------------------------------|------------------------------|
+| `host_ip`                        | IP del servidor                                                                                 | `localhost`, `IPv4` o `URL`  |
+| `port`                           | Puerto para la aplicación                                                                       | Entero en rango `1024-49151` |
+| `serving_path`                   | Indica el directorio que se mostrará de forma inicial al usuario                                | Ruta absoluta del directorio |
+| `allow_full_filesystem_access`   | Indica si el usuario puede acceder a cualquier parte del sistema de archivos                    | `True` o `False`             |
+| `allow_subdir_filesystem_access` | Indica si el usuario puede acceder a los subdirectorios en el directorio inicial                | `True` o `False`             |
+| `allow_shell_full_access`        | Indica si el usuario puede ejecutar cualquier comando disponible (sin permisos administrativos) | `True` o `False`             |
+| `allow_download_files`           | Indica si el usuario puede descargar archivos del servidor                                      | `True` o `False`             |
+| `allow_upload_files`             | Indica si el usuario puede subir archivos al servidor                                           | `True` o `False`             |
 
-**Nota**: Aunque se coloque `allow_shell_full_access` en `True`, este no es 
-completamente interactivo, lo que se traduce en que comandos que requieren de un 
-flujo constante de datos no serán utilizables (por ejemplo `less`, `nano`, `python` 
-[modo interactivo], etc).
+**Notas**: 
+- Aunque se coloque `allow_shell_full_access` en `True`, este no es 
+  completamente interactivo, lo que se traduce en que comandos que requieren de un 
+  flujo constante de datos no serán utilizables (por ejemplo `less`, `nano`, `python` 
+  [modo interactivo], etc).
+- Colocar el valor `True` en `allow_full_filesystem_access` cambia el 
+  valor de `allow_subdirectory_filesystem_access` a `True`.
 
 
 ### Historial de cambios
+
+#### v0.0.4
+- Agregados parámetros de configuración `serving_path`, `allow_full_filesystem_access`
+  y `allow_subdir_filesystem_access`
+- Added logging for the configuration properties
+- Se mejoró el funcionamiento del comando `cd` cuando contiene `~`
 
 #### v0.0.3_1
 - Resuelve problema al descargar archivos

@@ -37,7 +37,7 @@ file_name = ""
 async def echo(socket: websockets.WebSocketServerProtocol):
     global dropped_data, filesize, file_name
 
-    can_upload_files = command_worker.can_upload_files()
+    can_upload_files = config_loader.can_upload_files()
 
     async for message in socket:
         if not can_upload_files and isinstance(message, bytes):
@@ -82,15 +82,17 @@ def run():
 
     logging.info("Loading configuration file...")
     try:
-        config_loader.read_config()
+        command_worker.set_serving_path(config_loader.read_config())
     except ValueError as e:
         logging.error("Invalid configuration file")
         logging.error("    Delete the file 'config' to load the defaults")
-        logging.error(f"\n{e}")
+        logging.error(f"    {e}")
         exit(1)
 
-    if command_worker.can_execute_any_command():
+    if config_loader.can_execute_any_command():
         logging.warning("Unrestricted access to shell is allowed!")
+    if config_loader.can_fully_access_the_filesystem():
+        logging.warning("Unrestricted access to filesystem is allowed!")
 
     host_ip = config_loader.config["host_ip"]
     port = config_loader.config["port"]
